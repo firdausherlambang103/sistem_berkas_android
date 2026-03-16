@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'login_screen.dart';
+import 'berkas_screen.dart'; // <-- Tambahan import untuk halaman berkas
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -30,7 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
-    // Opsional: Tembak API Logout ke server agar token dihapus dari database
+    // Tembak API Logout ke server agar token dihapus dari database
     if (token != null) {
       await http.post(
         Uri.parse('http://10.0.2.2:8000/api/logout'),
@@ -80,6 +81,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 8),
             const Text('Aplikasi siap dihubungkan dengan data berkas.'),
+            
+            const SizedBox(height: 40), // Jarak sebelum tombol
+
+            // --- TOMBOL MENU BERKAS ---
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BerkasScreen()),
+                );
+              },
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Lihat Daftar Berkas', style: TextStyle(fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                backgroundColor: Colors.blue.shade900,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ],
         ),
       ),
