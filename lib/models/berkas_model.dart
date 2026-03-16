@@ -11,13 +11,17 @@ class Berkas {
     required this.status,
   });
 
-  // Mengubah data JSON dari Laravel menjadi Objek Dart
   factory Berkas.fromJson(Map<String, dynamic> json) {
     return Berkas(
-      id: json['id'],
-      noBerkas: json['no_berkas'] ?? 'Tanpa Nomor',
-      namaPemohon: json['nama_pemohon'] ?? 'Tanpa Nama',
-      status: json['status_berkas'] ?? 'Tidak diketahui',
+      id: json['id'] ?? 0,
+      // Membaca 'nomer_berkas' (sesuai DB asli Anda), jika tidak ada cari 'no_berkas'
+      noBerkas: json['nomer_berkas'] ?? json['no_berkas'] ?? 'Tanpa Nomor',
+      
+      // Jika kolom Anda di database namanya hanya 'pemohon' tanpa 'nama_'
+      namaPemohon: json['nama_pemohon'] ?? json['pemohon'] ?? 'Tanpa Nama',
+      
+      // Jika kolom Anda namanya hanya 'status' tanpa '_berkas'
+      status: json['status_berkas'] ?? json['status'] ?? 'Tidak diketahui',
     );
   }
 }

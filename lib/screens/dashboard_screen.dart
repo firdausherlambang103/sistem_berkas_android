@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+
+// Import halaman-halaman menu
 import 'login_screen.dart';
-import 'berkas_screen.dart'; // <-- Tambahan import untuk halaman berkas
+import 'berkas_screen.dart';
+import 'webgis_screen.dart';
+import 'ruang_kerja_screen.dart';
+import 'laporan_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -22,87 +27,120 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _userName = prefs.getString('user_name') ?? 'Petugas';
-    });
+    setState(() => _userName = prefs.getString('user_name') ?? 'Petugas');
   }
 
   Future<void> logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
-    // Tembak API Logout ke server agar token dihapus dari database
     if (token != null) {
       await http.post(
         Uri.parse('http://10.0.2.2:8000/api/logout'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
       );
     }
-
-    // Hapus data lokal
     await prefs.clear();
-
     if (!mounted) return;
-    // Kembali ke Halaman Login
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (Route<dynamic> route) => false,
-    );
+    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        elevation: 0,
         backgroundColor: Colors.blue.shade900,
-        foregroundColor: Colors.white,
+        title: const Text('Beranda', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: logout,
-            tooltip: 'Logout',
-          )
+          IconButton(icon: const Icon(Icons.logout, color: Colors.white), onPressed: logout, tooltip: 'Logout'),
         ],
       ),
-      body: Center(
+      body: Column(
+        children: [
+          // Header Section
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade900,
+              borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+              boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Selamat Datang,', style: TextStyle(color: Colors.blue.shade100, fontSize: 16)),
+                const SizedBox(height: 8),
+                Text(_userName, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Menu Grid Section
+          Expanded(
+            child: GridView.count(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              children: [
+                _buildMenuCard(
+                  title: 'Daftar Berkas',
+                  icon: Icons.folder_copy_rounded,
+                  color: Colors.orange,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BerkasScreen())),
+                ),
+                _buildMenuCard(
+                  title: 'Ruang Kerja',
+                  icon: Icons.work_history_rounded,
+                  color: Colors.purple,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RuangKerjaScreen())),
+                ),
+                _buildMenuCard(
+                  title: 'Peta WebGIS',
+                  icon: Icons.map_rounded,
+                  color: Colors.green,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const WebgisScreen())),
+                ),
+                _buildMenuCard(
+                  title: 'Laporan Rincian',
+                  icon: Icons.analytics_rounded,
+                  color: Colors.redAccent,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LaporanScreen())),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuCard({required String title, required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.check_circle_outline, size: 80, color: Colors.green),
-            const SizedBox(height: 16),
-            Text(
-              'Selamat Datang, $_userName!',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, size: 36, color: color),
             ),
-            const SizedBox(height: 8),
-            const Text('Aplikasi siap dihubungkan dengan data berkas.'),
-            
-            const SizedBox(height: 40), // Jarak sebelum tombol
-
-            // --- TOMBOL MENU BERKAS ---
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BerkasScreen()),
-                );
-              },
-              icon: const Icon(Icons.folder_open),
-              label: const Text('Lihat Daftar Berkas', style: TextStyle(fontSize: 16)),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                backgroundColor: Colors.blue.shade900,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
+            const SizedBox(height: 12),
+            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
           ],
         ),
       ),

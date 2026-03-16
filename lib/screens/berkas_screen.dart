@@ -24,18 +24,12 @@ class _BerkasScreenState extends State<BerkasScreen> {
   Future<void> _fetchBerkas() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
-
-    // Ingat ganti IP jika pakai device asli! (10.0.2.2 untuk emulator)
     final url = Uri.parse('http://10.0.2.2:8000/api/berkas');
 
     try {
       final response = await http.get(
         url,
-        // INI KUNCINYA: Mengirimkan Bearer Token
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
       );
 
       if (response.statusCode == 200) {
@@ -47,25 +41,20 @@ class _BerkasScreenState extends State<BerkasScreen> {
           _isLoading = false;
         });
       } else {
-        throw Exception('Gagal memuat data');
+        throw Exception('Gagal memuat data dari server (Status: ${response.statusCode})');
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       if(!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Terjadi kesalahan: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red));
     }
   }
 
-  // Fungsi pembantu untuk memberi warna berbeda pada status berkas
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'selesai': return Colors.green;
-      case 'diproses': return Colors.orange;
-      case 'ditolak': return Colors.red;
+      case 'selesai': return Colors.teal;
+      case 'diproses': return Colors.amber.shade700;
+      case 'ditolak': return Colors.redAccent;
       default: return Colors.blueGrey;
     }
   }
@@ -73,48 +62,71 @@ class _BerkasScreenState extends State<BerkasScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Daftar Berkas'),
+        title: const Text('Daftar Berkas', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: Colors.blue.shade900,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _listBerkas.isEmpty
-              ? const Center(child: Text('Belum ada data berkas.'))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.folder_off_outlined, size: 80, color: Colors.grey.shade400),
+                      const SizedBox(height: 16),
+                      Text('Belum ada data berkas', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                )
               : ListView.builder(
                   itemCount: _listBerkas.length,
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   itemBuilder: (context, index) {
                     final berkas = _listBerkas[index];
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                      ),
                       child: ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.folder),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        leading: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
+                          child: Icon(Icons.description_outlined, color: Colors.blue.shade800),
                         ),
                         title: Text(
                           berkas.noBerkas,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                        subtitle: Text(berkas.namaPemohon),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(berkas.namaPemohon, style: TextStyle(color: Colors.grey.shade600)),
+                        ),
                         trailing: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(berkas.status).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _getStatusColor(berkas.status)),
+                            color: _getStatusColor(berkas.status).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            berkas.status,
+                            berkas.status.toUpperCase(),
                             style: TextStyle(
                               color: _getStatusColor(berkas.status),
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
+                        onTap: () {
+                          // Siap untuk Fase Detail Berkas nanti
+                        },
                       ),
                     );
                   },
