@@ -18,6 +18,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String _userName = '';
+  String? _fotoProfil;
 
   @override
   void initState() {
@@ -27,7 +28,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() => _userName = prefs.getString('user_name') ?? 'Petugas');
+    setState(() {
+      _userName = prefs.getString('user_name') ?? 'Petugas';
+      // Mengambil URL foto profil yang disimpan saat login
+      _fotoProfil = prefs.getString('foto_profil'); 
+    });
   }
 
   Future<void> logout() async {
@@ -36,13 +41,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (token != null) {
       await http.post(
+        // Sesuaikan IP ini jika dijalankan di HP asli (bukan emulator)
         Uri.parse('http://10.0.2.2:8000/api/logout'),
         headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
       );
     }
     await prefs.clear();
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
+    Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false);
   }
 
   @override
@@ -52,36 +61,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.blue.shade900,
-        title: const Text('Beranda', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Beranda',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(icon: const Icon(Icons.logout, color: Colors.white), onPressed: logout, tooltip: 'Logout'),
+          IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: logout,
+              tooltip: 'Logout'),
         ],
       ),
       body: Column(
         children: [
-          // Header Section
+          // HEADER SECTION (Ditambahkan Foto Profil)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.blue.shade900,
-              borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
-              boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
+              borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30)),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.blue.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5))
+              ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Selamat Datang,', style: TextStyle(color: Colors.blue.shade100, fontSize: 16)),
-                const SizedBox(height: 8),
-                Text(_userName, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Selamat Datang,',
+                        style: TextStyle(
+                            color: Colors.blue.shade100, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Text(_userName,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                  ],
+                ),
+                // FOTO PROFIL SECTION
+                CircleAvatar(
+                  radius: 35,
+                  backgroundColor: Colors.white,
+                  child: CircleAvatar(
+                    radius: 32,
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage: (_fotoProfil != null && _fotoProfil!.isNotEmpty)
+                        ? NetworkImage(_fotoProfil!)
+                        : null,
+                    // Jika foto tidak ada, tampilkan icon default
+                    child: (_fotoProfil == null || _fotoProfil!.isEmpty)
+                        ? Icon(Icons.person, size: 40, color: Colors.grey.shade400)
+                        : null,
+                  ),
+                ),
               ],
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
-          // Menu Grid Section
+
+          // MENU GRID SECTION (Menu Ruang Kerja Kembali!)
           Expanded(
             child: GridView.count(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -93,25 +140,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   title: 'Daftar Berkas',
                   icon: Icons.folder_copy_rounded,
                   color: Colors.orange,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BerkasScreen())),
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => BerkasScreen())),
                 ),
                 _buildMenuCard(
                   title: 'Ruang Kerja',
                   icon: Icons.work_history_rounded,
                   color: Colors.purple,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RuangKerjaScreen())),
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const RuangKerjaScreen())),
                 ),
                 _buildMenuCard(
                   title: 'Peta WebGIS',
                   icon: Icons.map_rounded,
                   color: Colors.green,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const WebgisScreen())),
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const WebgisScreen())),
                 ),
                 _buildMenuCard(
                   title: 'Laporan Rincian',
                   icon: Icons.analytics_rounded,
                   color: Colors.redAccent,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LaporanScreen())),
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const LaporanScreen())),
                 ),
               ],
             ),
@@ -121,7 +180,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMenuCard({required String title, required IconData icon, required Color color, required VoidCallback onTap}) {
+  Widget _buildMenuCard(
+      {required String title,
+      required IconData icon,
+      required Color color,
+      required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -129,18 +192,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.grey.withOpacity(0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                  color: color.withOpacity(0.1), shape: BoxShape.circle),
               child: Icon(icon, size: 36, color: color),
             ),
             const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
           ],
         ),
       ),
