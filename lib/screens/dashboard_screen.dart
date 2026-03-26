@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
+// Import API Config yang baru dibuat
+import '../api_config.dart';
+
 // Import halaman-halaman menu
 import 'login_screen.dart';
 import 'berkas_screen.dart';
@@ -17,9 +20,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // PENTING: Ganti IP ini dengan IP server Laravel Anda (10.0.2.2 untuk emulator)
-  static const String _baseUrl = 'http://10.0.2.2:8000'; 
-
   String _userName = '';
   String? _fotoProfilFullUrl;
 
@@ -34,13 +34,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _userName = prefs.getString('user_name') ?? 'Petugas BPN';
       
-      // Logika perbaikan URL Foto Profil
+      // Logika perbaikan URL Foto Profil menggunakan ApiConfig
       String? rawFoto = prefs.getString('foto_profil'); 
       if (rawFoto != null && rawFoto.isNotEmpty) {
         if (rawFoto.startsWith('http')) {
           _fotoProfilFullUrl = rawFoto;
         } else {
-          _fotoProfilFullUrl = '$_baseUrl/storage/$rawFoto';
+          _fotoProfilFullUrl = '${ApiConfig.baseUrl}/storage/$rawFoto';
         }
       } else {
         _fotoProfilFullUrl = null;
@@ -74,7 +74,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (token != null) {
         try {
           await http.post(
-            Uri.parse('$_baseUrl/api/logout'),
+            // Menggunakan ApiConfig untuk endpoint logout
+            Uri.parse('${ApiConfig.baseUrl}/api/logout'),
             headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
           );
         } catch (e) {

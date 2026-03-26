@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/berkas_model.dart';
-
+import '../api_config.dart';
 // --- IMPORT UNTUK LEAFLET (FLUTTER MAP) ---
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -36,7 +36,7 @@ class _DetailBerkasScreenState extends State<DetailBerkasScreen> {
     String? token = prefs.getString('token');
     
     // Ganti dengan IP server/emulator Anda (contoh: 192.168.1.x jika HP asli)
-    final url = Uri.parse('http://10.0.2.2:8000/api/berkas/${widget.berkas.id}');
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/berkas/${widget.berkas.id}');
     print("Memanggil API Detail: $url"); // LOG UNTUK CEK URL
 
     try {

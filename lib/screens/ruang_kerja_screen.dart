@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../api_config.dart';
 import 'detail_berkas_screen.dart'; 
 import '../models/berkas_model.dart'; 
 
@@ -30,7 +30,7 @@ class _RuangKerjaScreenState extends State<RuangKerjaScreen> {
     String? token = prefs.getString('token');
     
     // Sesuaikan IP dengan IP Server/Emulator Anda
-    final url = Uri.parse('http://10.0.2.2:8000/api/ruang-kerja'); 
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/ruang-kerja'); 
 
     try {
       final response = await http.get(

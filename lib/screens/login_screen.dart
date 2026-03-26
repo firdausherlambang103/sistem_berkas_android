@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../api_config.dart';
 // Import halaman dashboard
 import 'dashboard_screen.dart';
 
@@ -32,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // Sesuaikan URL dengan IP lokal Anda jika di HP asli (contoh: 192.168.1.x)
     // Gunakan 10.0.2.2 jika menggunakan Emulator Android
-    final String url = 'http://10.0.2.2:8000/api/login';
+    final String url = '${ApiConfig.baseUrl}/api/login';
 
     try {
       final response = await http.post(

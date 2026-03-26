@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../api_config.dart';
 
 class WebgisScreen extends StatefulWidget {
   const WebgisScreen({super.key});
@@ -41,9 +42,7 @@ class _WebgisScreenState extends State<WebgisScreen> {
       // SESUAIKAN: Pastikan key di bawah ('token') sama dengan key yang Anda pakai saat Login
       String? token = prefs.getString('token'); 
 
-      final url = Uri.parse(
-          'http://10.0.2.2:8000/api/map/spatial-data?north=$north&south=$south&east=$east&west=$west'
-      );
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/map/spatial-data?north=$north&south=$south&east=$east&west=$west');
 
       final response = await http.get(
         url,

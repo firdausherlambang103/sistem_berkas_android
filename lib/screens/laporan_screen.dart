@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../api_config.dart';
 
 class LaporanScreen extends StatefulWidget {
   const LaporanScreen({super.key});
@@ -28,7 +29,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
     
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/laporan/statistik'),
+        Uri.parse('${ApiConfig.baseUrl}/api/laporan/statistik'),
         headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
       );
 
