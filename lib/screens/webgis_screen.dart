@@ -14,137 +14,191 @@ class WebgisScreen extends StatefulWidget {
 
 class _WebgisScreenState extends State<WebgisScreen> {
   final MapController _mapController = MapController();
-  bool _isLoading = false;
-  bool _showLayerAset = true;
-  String _currentBasemap = 'satellite';
-  List<Polygon> _polygons = [];
-  LatLng _initialCenter = const LatLng(-7.6043, 111.9034);
+  List<Polygon> polygons = [];
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchSpatialData());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchSpatialData();
+    });
   }
 
   Future<void> _fetchSpatialData() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      isLoading = true;
+    });
 
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token');
       final bounds = _mapController.camera.visibleBounds;
+      final north = bounds.north;
+      final south = bounds.south;
+      final east = bounds.east;
+      final west = bounds.west;
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      // SESUAIKAN: Pastikan key di bawah ('token') sama dengan key yang Anda pakai saat Login
+      String? token = prefs.getString('token'); 
 
       final url = Uri.parse(
-        'http://10.0.2.2:8000/api/map/spatial-data?'
-        'north=${bounds.north}&'
-        'south=${bounds.south}&'
-        'east=${bounds.east}&'
-        'west=${bounds.west}'
+          'http://10.0.2.2:8000/api/map/spatial-data?north=$north&south=$south&east=$east&west=$west'
       );
 
-      final response = await http.get(url, headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json'
-      });
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        final List<dynamic> features = jsonResponse['features'] ?? [];
-        _processWebFeatures(features);
+        final data = json.decode(response.body);
+        
+        // --- DEBUGGING: Cek apakah data benar-benar masuk ---
+        final featuresCount = (data['features'] as List?)?.length ?? 0;
+        debugPrint("SUKSES API: Menerima $featuresCount data aset polygon di area ini.");
+        // ----------------------------------------------------
+
+        _parseGeoJsonToPolygons(data);
+      } else {
+        debugPrint("GAGAL API: Status ${response.statusCode} - ${response.body}");
       }
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("ERROR FETCHING: $e");
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
-  void _processWebFeatures(List<dynamic> features) {
-    List<Polygon> tempPolygons = [];
+  void _parseGeoJsonToPolygons(Map<String, dynamic> geoJsonData) {
+    List<Polygon> newPolygons = [];
+    final features = geoJsonData['features'] as List?;
+
+    if (features == null) return;
+
     for (var feature in features) {
-      var geometry = feature['geometry'];
-      var props = feature['properties'];
-      if (geometry != null) {
-        List<LatLng> points = [];
-        var coordsRaw = geometry['type'] == 'MultiPolygon' 
-            ? geometry['coordinates'][0][0] 
-            : geometry['coordinates'][0];
+      final geometry = feature['geometry'];
+      if (geometry == null) continue;
 
-        for (var c in coordsRaw) {
-          points.add(LatLng(c[1].toDouble(), c[0].toDouble()));
-        }
+      final type = geometry['type'];
+      final coordinates = geometry['coordinates'];
+      final properties = feature['properties'] ?? {};
 
-        if (points.isNotEmpty) {
-          String colorHex = props['layer_color'] ?? '#3388ff';
-          Color polyColor = Color(int.parse(colorHex.replaceFirst('#', '0xff')));
-          tempPolygons.add(Polygon(
-            points: points,
-            color: polyColor.withOpacity(0.5),
-            borderColor: polyColor,
-            borderStrokeWidth: 2,
-          ));
+      String colorHex = properties['layer_color'] ?? '#3388ff';
+      Color layerColor = Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
+
+      // PERBAIKAN: Handle struktur Geometry Polygon & MultiPolygon dari SHP
+      try {
+        if (type == 'Polygon') {
+          newPolygons.add(_createPolygon(coordinates[0], layerColor, properties));
+        } else if (type == 'MultiPolygon') {
+          for (var polygonCoords in coordinates) {
+            newPolygons.add(_createPolygon(polygonCoords[0], layerColor, properties));
+          }
         }
+      } catch (e) {
+        debugPrint("Error parsing geometri: $e");
       }
     }
-    setState(() => _polygons = tempPolygons);
+
+    setState(() {
+      polygons = newPolygons;
+    });
+  }
+
+  Polygon _createPolygon(List<dynamic> coords, Color color, Map<String, dynamic> props) {
+    List<LatLng> points = [];
+    for (var coord in coords) {
+      points.add(LatLng(coord[1], coord[0]));
+    }
+
+    return Polygon(
+      points: points,
+      color: color.withOpacity(0.5), // Transparansi isian poligon
+      borderColor: color,            // Warna outline
+      borderStrokeWidth: 2.0,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WebGIS PostGIS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF0D47A1),
+        title: const Text('WebGIS Native'),
+        actions: [
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchSpatialData,
+          ),
+        ],
       ),
       body: Stack(
         children: [
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _initialCenter,
-              initialZoom: 15.0,
-              onPositionChanged: (pos, hasGesture) {
-                if (!hasGesture) _fetchSpatialData();
+              initialCenter: const LatLng(-7.8228, 112.0118), // Pusat awal (Alun-Alun Kediri)
+              initialZoom: 14.0,
+              minZoom: 5.0,
+              maxZoom: 19.0,
+              onPositionChanged: (position, hasGesture) {
+                if (hasGesture) {
+                  _fetchSpatialData();
+                }
               },
             ),
             children: [
               TileLayer(
-                urlTemplate: _currentBasemap == 'satellite'
-                    ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
-                    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.sistem_berkas_android',
               ),
-              if (_showLayerAset) PolygonLayer(polygons: _polygons),
+              PolygonLayer(
+                polygons: polygons,
+              ),
             ],
           ),
+          
           Positioned(
-            top: 20, right: 15,
-            child: Column(
-              children: [
-                _buildSideButton(
-                  icon: _currentBasemap == 'satellite' ? Icons.map : Icons.satellite_alt,
-                  onTap: () => setState(() => _currentBasemap = _currentBasemap == 'satellite' ? 'osm' : 'satellite'),
-                ),
-                const SizedBox(height: 12),
-                _buildSideButton(
-                  icon: Icons.layers,
-                  color: _showLayerAset ? Colors.blue : Colors.grey,
-                  onTap: () => setState(() => _showLayerAset = !_showLayerAset),
-                ),
-              ],
+            bottom: 20,
+            left: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5)
+                ],
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.bolt, color: Colors.green, size: 16),
+                  SizedBox(width: 5),
+                  Text(
+                    "Native Map Engine",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
           ),
-          if (_isLoading)
-            const Positioned(top: 20, left: 0, right: 0, child: Center(child: CircularProgressIndicator())),
         ],
       ),
-    );
-  }
-
-  Widget _buildSideButton({required IconData icon, required VoidCallback onTap, Color? color}) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)]),
-      child: IconButton(icon: Icon(icon, color: color ?? const Color(0xFF0D47A1)), onPressed: onTap),
     );
   }
 }
